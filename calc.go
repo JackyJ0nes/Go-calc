@@ -8,31 +8,6 @@ import (
 	"strings"
 )
 
-var romanNumerals = []struct {
-	Value  int
-	Symbol string
-}{
-	{10, "X"},
-	{9, "IX"},
-	{8, "VIII"},
-	{7, "VII"},
-	{6, "VI"},
-	{5, "V"},
-	{4, "IV"},
-	{3, "III"},
-	{2, "II"},
-	{1, "I"},
-}
-
-func arabicToRoman(n int) string {
-	for _, value := range romanNumerals {
-		if n >= value.Value {
-			return value.Symbol + arabicToRoman(n-value.Value)
-		}
-	}
-	return ""
-}
-
 func isArabic(s string) bool {
 	s = strings.TrimSpace(s)
 	if s == "" {
@@ -42,6 +17,37 @@ func isArabic(s string) bool {
 	return err == nil
 }
 
+func arabicToRoman(n int) string {
+	romanMap := []struct {
+		Value  int
+		Symbol string
+	}{
+		{1000, "M"},
+		{900, "CM"},
+		{500, "D"},
+		{400, "CD"},
+		{100, "C"},
+		{90, "XC"},
+		{50, "L"},
+		{40, "XL"},
+		{10, "X"},
+		{9, "IX"},
+		{5, "V"},
+		{4, "IV"},
+		{1, "I"},
+	}
+
+	var result strings.Builder
+	for _, pair := range romanMap {
+		count := n / pair.Value
+		for i := 0; i < count; i++ {
+			result.WriteString(pair.Symbol)
+		}
+		n %= pair.Value
+	}
+	return result.String()
+}
+
 func romanToArabic(s string) int {
 	s = strings.TrimSpace(s)
 	if s == "" {
@@ -49,7 +55,13 @@ func romanToArabic(s string) int {
 	}
 
 	romanMap := map[byte]int{
-		'I': 1, 'V': 5, 'X': 10, 'L': 50, 'C': 100, 'D': 500, 'M': 1000,
+		'I': 1,
+		'V': 5,
+		'X': 10,
+		'L': 50,
+		'C': 100,
+		'D': 500,
+		'M': 1000,
 	}
 
 	result := 0
@@ -57,7 +69,7 @@ func romanToArabic(s string) int {
 	for i := 0; i < len(s); i++ {
 		value, ok := romanMap[s[i]]
 		if !ok {
-			return 0 // Невалидный римский символ
+			return 0
 		}
 
 		if value > prevValue {
@@ -69,20 +81,6 @@ func romanToArabic(s string) int {
 	}
 
 	return result
-}
-
-func calculate(a, b int, op string) int {
-	switch op {
-	case "+":
-		return a + b
-	case "-":
-		return a - b
-	case "*":
-		return a * b
-	case "/":
-		return a / b
-	}
-	panic("Неверная операция")
 }
 
 func parseNumber(s string) (int, bool, bool) {
@@ -98,6 +96,20 @@ func parseNumber(s string) (int, bool, bool) {
 	}
 
 	return 0, false, false
+}
+
+func calculate(a, b int, op string) int {
+	switch op {
+	case "+":
+		return a + b
+	case "-":
+		return a - b
+	case "*":
+		return a * b
+	case "/":
+		return a / b
+	}
+	panic("Неверная операция")
 }
 
 func main() {
@@ -128,7 +140,7 @@ func main() {
 	result := calculate(a, b, op)
 
 	if isArabicA {
-		fmt.Printf("%d %s %d = %d\n", a, op, b, result)
+		fmt.Print(result)
 	} else {
 		if result <= 0 {
 			panic("В римской системе нет нуля и отрицательных чисел")

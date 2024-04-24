@@ -1,12 +1,13 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 )
 
-// Определение отображения арабских цифр на римские
 var romanNumerals = []struct {
 	Value  int
 	Symbol string
@@ -23,7 +24,6 @@ var romanNumerals = []struct {
 	{1, "I"},
 }
 
-// Функция для конвертации арабских чисел в римские
 func arabicToRoman(n int) string {
 	for _, value := range romanNumerals {
 		if n >= value.Value {
@@ -33,32 +33,44 @@ func arabicToRoman(n int) string {
 	return ""
 }
 
-// Функция для конвертации римских чисел в арабские
-func romanToArabic(s string) int {
-	result := 0
-	for i := 0; i < len(s); i++ {
-		symbol := string(s[i])
-		for _, value := range romanNumerals {
-			if symbol == value.Symbol {
-				if i+1 < len(s) {
-					nextSymbol := string(s[i+1])
-					for _, next := range romanNumerals {
-						if nextSymbol == next.Symbol && next.Value > value.Value {
-							result += next.Value - value.Value
-							i++
-							break
-						}
-					}
-				}
-				result += value.Value
-				break
-			}
-		}
+func isArabic(s string) bool {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return false
 	}
+	_, err := strconv.Atoi(s)
+	return err == nil
+}
+
+func romanToArabic(s string) int {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return 0
+	}
+
+	romanMap := map[byte]int{
+		'I': 1, 'V': 5, 'X': 10, 'L': 50, 'C': 100, 'D': 500, 'M': 1000,
+	}
+
+	result := 0
+	prevValue := 0
+	for i := 0; i < len(s); i++ {
+		value, ok := romanMap[s[i]]
+		if !ok {
+			return 0 // Невалидный римский символ
+		}
+
+		if value > prevValue {
+			result += value - 2*prevValue
+		} else {
+			result += value
+		}
+		prevValue = value
+	}
+
 	return result
 }
 
-// Определение функций для выполнения арифметических операций
 func calculate(a, b int, op string) int {
 	switch op {
 	case "+":
@@ -73,51 +85,54 @@ func calculate(a, b int, op string) int {
 	panic("Неверная операция")
 }
 
-func main() {
-	var input string
-	fmt.Print("Введите выражение (например, 2 + 3): ")
-	fmt.Scanln(&input)
+func parseNumber(s string) (int, bool, bool) {
+	s = strings.TrimSpace(s)
+	n, err := strconv.Atoi(s)
+	if err == nil {
+		return n, true, true
+	}
 
-	// Парсинг входных данных
-	parts := strings.Split(input, " ")
+	number := romanToArabic(s)
+	if number != 0 {
+		return number, true, false
+	}
+
+	return 0, false, false
+}
+
+func main() {
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Print("Введите выражение (например, 2 + 3): ")
+	input, _ := reader.ReadString('\n')
+	parts := strings.Split(strings.TrimSuffix(input, "\r\n"), " ")
 	if len(parts) != 3 {
 		panic("Неверный формат входных данных")
 	}
 
-	// Определение типа чисел (арабские или римские)
-	isArabic := true
-	a, err := strconv.Atoi(parts[0])
-	if err != nil {
-		a = romanToArabic(parts[0])
-		isArabic = false
+	a, isNumberA, isArabicA := parseNumber(parts[0])
+	b, isNumberB, isArabicB := parseNumber(parts[2])
+
+	if !isNumberA || !isNumberB {
+		panic("Ошибка при разборе чисел")
 	}
 
-	b, err := strconv.Atoi(parts[2])
-	if err != nil {
-		if isArabic {
-			panic("Используются разные системы счисления")
-		}
-		b = romanToArabic(parts[2])
-	} else if !isArabic {
+	if isArabicA != isArabicB {
 		panic("Используются разные системы счисления")
 	}
 
-	// Проверка диапазона чисел
 	if a < 1 || a > 10 || b < 1 || b > 10 {
 		panic("Числа должны быть от 1 до 10")
 	}
 
-	// Вычисление результата
 	op := parts[1]
 	result := calculate(a, b, op)
 
-	// Вывод результата
-	if isArabic {
+	if isArabicA {
 		fmt.Printf("%d %s %d = %d\n", a, op, b, result)
 	} else {
 		if result <= 0 {
 			panic("В римской системе нет нуля и отрицательных чисел")
 		}
-		fmt.Printf("%s %s %s = %s\n", parts[0], op, parts[2], arabicToRoman(result))
+		fmt.Printf(arabicToRoman(result))
 	}
 }
